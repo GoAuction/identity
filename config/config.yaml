@@ -1,0 +1,8 @@
+port: 8080
+postgres_username: "postgres"
+postgres_password: "postgres"
+postgres_database: "auction"
+postgres_sslmode: "disable"
+postgres_host: "localhost"
+postgres_port: 5432
+jwt_secret: "change-me"
