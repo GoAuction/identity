@@ -48,6 +48,7 @@ func NewBearerAuthMiddleware(secret string) fiber.Handler {
 
 		userCtx = context.WithValue(userCtx, "UserID", claims.Subject)
 		userCtx = context.WithValue(userCtx, "UserEmail", claims.Email)
+		userCtx = context.WithValue(userCtx, "Jwt", tokenString)
 
 		c.SetUserContext(userCtx)
 		return c.Next()

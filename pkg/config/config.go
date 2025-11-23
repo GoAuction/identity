@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -25,7 +24,6 @@ func Read() *AppConfig {
 	viper.AddConfigPath(".")           // optionally look for config in the working directory
 	viper.AddConfigPath("/config")     // optionally look for config in the working directory
 	viper.AddConfigPath("./config")    // optionally look for config in the working directory
-	configureEnvOverrides()
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		panic(fmt.Errorf("fatal error config file: %w", err))
@@ -38,26 +36,4 @@ func Read() *AppConfig {
 	}
 
 	return &appConfig
-}
-
-func configureEnvOverrides() {
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-
-	keys := []string{
-		"port",
-		"postgres_username",
-		"postgres_password",
-		"postgres_database",
-		"postgres_sslmode",
-		"postgres_host",
-		"postgres_port",
-		"jwt_secret",
-	}
-
-	for _, key := range keys {
-		if err := viper.BindEnv(key); err != nil {
-			panic(fmt.Errorf("fatal error binding env for %s: %w", key, err))
-		}
-	}
 }

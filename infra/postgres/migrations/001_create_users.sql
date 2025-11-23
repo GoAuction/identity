@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     two_factor_secret VARCHAR(16),
     two_factor_enabled BOOLEAN DEFAULT false,
     two_factor_verified BOOLEAN DEFAULT false,
-    two_factor_recovery_codes JSONB
+    two_factor_recovery_codes TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
