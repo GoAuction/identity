@@ -6,8 +6,8 @@ import (
 )
 
 type Repository interface {
-	FindByID(id string) (*domain.User, error)
-	FindByEmail(email string) (*domain.User, error)
+	FindByID(ctx context.Context, id string) (*domain.User, error)
+	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	Create(ctx context.Context, email string, password string, name string) (string, error)
 	Update(ctx context.Context, id string, email string, name string) error
 	EnableTwoFactor(ctx context.Context, id string, twoFactorSecret string) error

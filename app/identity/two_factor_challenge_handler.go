@@ -36,12 +36,12 @@ func (t TwoFactorChallengeHandler) Handle(ctx context.Context, req *TwoFactorCha
 		return nil, httperror.InternalServerError("identity.two_factor_challenge.internal_server_error", "Internal server error", nil)
 	}
 
-	user, err := t.repository.FindByID(claims.Subject)
+	user, err := t.repository.FindByID(ctx, claims.Subject)
 	if err != nil {
 		return nil, httperror.NotFound("identity.two_factor_challenge.not_found", "User not found", nil)
 	}
 
-	if !totp.VerifyOTP(user.TwoFactorSecret, req.Code, 0,0,0) {
+	if !user.TwoFactorSecret.Valid || !totp.VerifyOTP(user.TwoFactorSecret.String, req.Code, 0, 0, 0) {
 		return nil, httperror.BadRequest("identity.two_factor_challenge.invalid_code", "Invalid code", nil)
 	}
 

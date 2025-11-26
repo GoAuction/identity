@@ -42,7 +42,7 @@ func (h *LoginHandler) Handle(ctx context.Context, req *LoginRequest) (*LoginRes
 		)
 	}
 
-	user, err := h.repository.FindByEmail(req.Email)
+	user, err := h.repository.FindByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, httperror.Unauthorized(
@@ -55,7 +55,9 @@ func (h *LoginHandler) Handle(ctx context.Context, req *LoginRequest) (*LoginRes
 		return nil, httperror.InternalServerError(
 			"identity.login.lookup_failed",
 			"Invalid user",
-			nil,
+			[]string{
+				err.Error(),
+			},
 		)
 	}
 

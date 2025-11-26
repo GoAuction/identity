@@ -32,12 +32,16 @@ func (v VerifyTwoFactorHandler) Handle(ctx context.Context, req *VerifyTwoFactor
 	val := ctx.Value("UserID")
 	userID := val.(string)
 
-	user, err := v.repository.FindByID(userID)
+	user, err := v.repository.FindByID(ctx, userID)
 	if err != nil {
 		return nil, httperror.NotFound("identity.two_factor_challenge.not_found", "User not found", nil)
 	}
 
-	passed := totp.VerifyOTP(user.TwoFactorSecret, req.Code, 0, 0, 0)
+	if !user.TwoFactorSecret.Valid {
+		return nil, httperror.BadRequest("identity.verify_two_factor.invalid_code", "Two factor not enabled", nil)
+	}
+
+	passed := totp.VerifyOTP(user.TwoFactorSecret.String, req.Code, 0, 0, 0)
 	if !passed {
 		return nil, httperror.BadRequest("identity.verify_two_factor.invalid_code", "Invalid code", nil)
 	}

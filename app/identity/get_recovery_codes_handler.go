@@ -27,18 +27,19 @@ func (g GetRecoveryCodesHandler) Handle(ctx context.Context, _ *GetRecoveryCodes
 	val := ctx.Value("UserID")
 	userID := val.(string)
 
-	user, err := g.repository.FindByID(userID)
+	user, err := g.repository.FindByID(ctx, userID)
 	if err != nil {
 		return nil, httperror.NotFound("identity.get_recovery_codes.not_found", "User not found", nil)
 	}
 
 	var recoveryCodes []string
 
-	if user.TwoFactorRecoveryCodes == "" {
-		user.TwoFactorRecoveryCodes = "[]"
+	recoveryCodesStr := "[]"
+	if user.TwoFactorRecoveryCodes.Valid && user.TwoFactorRecoveryCodes.String != "" {
+		recoveryCodesStr = user.TwoFactorRecoveryCodes.String
 	}
 
-	err = json.Unmarshal([]byte(user.TwoFactorRecoveryCodes), &recoveryCodes)
+	err = json.Unmarshal([]byte(recoveryCodesStr), &recoveryCodes)
 	if err != nil {
 		return nil, httperror.InternalServerError(
 			"identity.get_recovery_codes.server_error",

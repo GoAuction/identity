@@ -30,7 +30,7 @@ func (g GetUserHandler) Handle(ctx context.Context, _ *GetUserRequest) (*GetUser
 	val := ctx.Value("UserID")
 	userID := val.(string)
 
-	user, err := g.repository.FindByID(userID)
+	user, err := g.repository.FindByID(ctx, userID)
 	if err != nil {
 		return nil, httperror.NotFound("identity.get_user.not_found", "User not found", nil)
 	}

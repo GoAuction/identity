@@ -25,7 +25,7 @@ func (e DisableTwoFactorHandler) Handle(ctx context.Context, _ *DisableTwoFactor
 	val := ctx.Value("UserID")
 	userID := val.(string)
 
-	_, err := e.repository.FindByID(userID)
+	_, err := e.repository.FindByID(ctx, userID)
 	if err != nil {
 		return nil, httperror.NotFound(
 			"identity.enable_two_factor.invalid_user_id",

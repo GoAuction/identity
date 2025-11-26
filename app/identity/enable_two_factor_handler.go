@@ -27,7 +27,7 @@ func (e EnableTwoFactorHandler) Handle(ctx context.Context, _ *EnableTwoFactorRe
 	val := ctx.Value("UserID")
 	userID := val.(string)
 
-	user, err := e.repository.FindByID(userID)
+	user, err := e.repository.FindByID(ctx, userID)
 	if err != nil {
 		return nil, httperror.NotFound(
 			"identity.enable_two_factor.invalid_user_id",
@@ -37,9 +37,9 @@ func (e EnableTwoFactorHandler) Handle(ctx context.Context, _ *EnableTwoFactorRe
 	}
 
 	var secret string
-	if user.TwoFactorEnabled {
-		secret = user.TwoFactorSecret
-	}else {
+	if user.TwoFactorEnabled && user.TwoFactorSecret.Valid {
+		secret = user.TwoFactorSecret.String
+	} else {
 		secret = totp.GenerateTwoFactorSecret()
 	}
 
