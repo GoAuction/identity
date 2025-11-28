@@ -11,7 +11,7 @@ services:
       PORT: 8080
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DATABASE: auction
+      POSTGRES_DATABASE: identity
       POSTGRES_SSLMODE: disable
       POSTGRES_HOST: identity-postgres
       POSTGRES_PORT: 5432
@@ -36,7 +36,7 @@ services:
       PORT: 8080
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DATABASE: auction
+      POSTGRES_DATABASE: identity
       POSTGRES_SSLMODE: disable
       POSTGRES_HOST: identity-postgres
       POSTGRES_PORT: 5432
@@ -55,7 +55,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: auction
+      POSTGRES_DB: identity
     volumes:
       - identity-postgres-data:/var/lib/postgresql
       - ./infra/postgres/migrations:/docker-entrypoint-initdb.d:ro
