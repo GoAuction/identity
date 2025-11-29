@@ -7,14 +7,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
-    environment:
-      PORT: 8080
-      POSTGRES_USERNAME: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DATABASE: identity
-      POSTGRES_SSLMODE: disable
-      POSTGRES_HOST: identity-postgres
-      POSTGRES_PORT: 5432
+    env_file:
+      - .env
     depends_on:
       identity-postgres:
         condition: service_healthy
@@ -32,14 +26,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      PORT: 8080
-      POSTGRES_USERNAME: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DATABASE: identity
-      POSTGRES_SSLMODE: disable
-      POSTGRES_HOST: identity-postgres
-      POSTGRES_PORT: 5432
+    env_file:
+      - .env
     depends_on:
       identity-postgres:
         condition: service_healthy
