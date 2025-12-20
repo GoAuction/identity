@@ -22,16 +22,16 @@ RUN go mod download
 # Copy the rest of the source
 COPY . .
 
-# Build the identity service binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /identity ./main.go
+FROM builder AS builder-api
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /identity-api ./main.go
 
-FROM gcr.io/distroless/base-debian12:nonroot AS runner
+# API Service Runner
+FROM gcr.io/distroless/base-debian12:nonroot AS api
 
 WORKDIR /app
 
-COPY --from=builder /identity /usr/local/bin/identity
-COPY --from=builder /src/config ./config
+COPY --from=builder-api /identity-api /usr/local/bin/identity-api
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/identity"]
+ENTRYPOINT ["/usr/local/bin/identity-api"]

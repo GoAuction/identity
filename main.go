@@ -112,7 +112,7 @@ func main() {
 
 	privateRoutes := app.Group("/", bearerAuth)
 	privateRoutes.Get("/me", handle[identity.GetUserRequest, identity.GetUserResponse](getUserHandler))
-	privateRoutes.Get("/validate", handle[identity.ValidateHandlerRequest, identity.ValidateHandlerResponse](validateHandler))
+	privateRoutes.Get("/validate", middleware.SetResponseHeadersMiddleware(), handle[identity.ValidateHandlerRequest, identity.ValidateHandlerResponse](validateHandler))
 
 	tfaRoutes := privateRoutes.Group("/2fa")
 	tfaRoutes.Post("/enable", handle[identity.EnableTwoFactorRequest, identity.EnableTwoFactorResponse](enableTwoFactorHandler))

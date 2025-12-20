@@ -3,6 +3,7 @@ name: auction-identity
 services:
   identity-dev:
     profiles: ["dev"]
+    container_name: identity
     build:
       context: .
       dockerfile: Dockerfile
@@ -16,13 +17,16 @@ services:
       - .:/app
       - identity-go-mod:/go/pkg/mod
     ports:
-      - "8080:8080"
+      - "${HOST_PORT:-8082}:${PORT:-8080}"
     restart: unless-stopped
     networks:
       - identity-internal
       - rabbitmq-shared
+      - traefik-shared
 
   identity:
+    profiles: ["prod"]
+    container_name: identity
     build:
       context: .
       dockerfile: Dockerfile
@@ -32,11 +36,12 @@ services:
       identity-postgres:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${HOST_PORT:-8082}:${PORT:-8080}"
     restart: unless-stopped
     networks:
       - identity-internal
       - rabbitmq-shared
+      - traefik-shared
 
   identity-postgres:
     image: postgres:latest
@@ -68,3 +73,6 @@ networks:
   rabbitmq-shared:
     external: true
     name: auction-rabbitmq-network
+  traefik-shared:
+    external: true
+    name: auction-traefik-network
