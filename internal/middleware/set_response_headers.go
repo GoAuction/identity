@@ -20,6 +20,10 @@ func SetResponseHeadersMiddleware() fiber.Handler {
 			c.Set("Authorization", "Bearer "+jwt)
 		}
 
+		if userName, ok := c.UserContext().Value("UserName").(string); ok && userName != "" {
+			c.Set("User-Name", userName)
+		}
+
 		return err
 	}
 }

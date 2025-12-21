@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"auction/domain"
+
 	jwtPkg "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -12,7 +13,7 @@ import (
 var appConfig = config.Read()
 
 type Claims struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
 	Email string `json:"email"`
 	jwtPkg.RegisteredClaims
 }
@@ -38,7 +39,7 @@ func Payload(u *domain.User) Claims {
 			Issuer:    "Identity",
 			Subject:   u.ID,
 			Audience:  jwtPkg.ClaimStrings{"api"},
-			ExpiresAt: jwtPkg.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwtPkg.NewNumericDate(time.Now().Add(5 * time.Hour)),
 			NotBefore: jwtPkg.NewNumericDate(time.Now()),
 			IssuedAt:  jwtPkg.NewNumericDate(time.Now()),
 			ID:        uuid.New().String(),

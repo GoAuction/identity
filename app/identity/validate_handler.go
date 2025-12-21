@@ -32,6 +32,8 @@ func (g ValidateHandler) Handle(ctx context.Context, _ *ValidateHandlerRequest) 
 		return nil, httperror.InternalServerError("identity.validate.server_error", "Internal server error", nil)
 	}
 
+	ctx = context.WithValue(ctx, "UserName", claims.Name)
+
 	return &ValidateHandlerResponse{
 		Claims: *claims,
 	}, nil
