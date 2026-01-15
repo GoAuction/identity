@@ -1,8 +1,8 @@
-package identity
+package app
 
 import (
-	"auction/pkg/httperror"
 	"context"
+	"identity/pkg/httperror"
 )
 
 type GetUserHandler struct {
@@ -13,11 +13,10 @@ type GetUserRequest struct {
 }
 
 type GetUserResponse struct {
-	ID string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	TwoFactorVerified bool `json:"two_factor_verified"`
-	TwoFactorEnabled bool `json:"two_factor_enabled"`
+	ID                string `json:"id"`
+	Email             string `json:"email"`
+	TwoFactorVerified bool   `json:"two_factor_verified"`
+	TwoFactorEnabled  bool   `json:"two_factor_enabled"`
 }
 
 func NewGetUserHandler(repository Repository) *GetUserHandler {
@@ -26,7 +25,7 @@ func NewGetUserHandler(repository Repository) *GetUserHandler {
 	}
 }
 
-func (g GetUserHandler) Handle(ctx context.Context, _ *GetUserRequest) (*GetUserResponse, error) {
+func (g *GetUserHandler) Handle(ctx context.Context, _ *GetUserRequest) (*GetUserResponse, error) {
 	val := ctx.Value("UserID")
 	userID := val.(string)
 
@@ -37,7 +36,6 @@ func (g GetUserHandler) Handle(ctx context.Context, _ *GetUserRequest) (*GetUser
 
 	return &GetUserResponse{
 		ID:                user.ID,
-		Name:              user.Name,
 		Email:             user.Email,
 		TwoFactorVerified: user.TwoFactorVerified,
 		TwoFactorEnabled:  user.TwoFactorEnabled,

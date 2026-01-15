@@ -1,16 +1,20 @@
 package middleware
 
 import (
-	"auction/pkg/httperror"
 	"context"
+	"database/sql"
+	identity "identity/app"
+	"identity/pkg/httperror"
 	"strings"
 
-	jwtPkg "auction/pkg/jwt"
+	jwtPkg "identity/pkg/jwt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
-func NewBearerAuthMiddleware(secret string) fiber.Handler {
+func NewBearerAuthMiddleware(secret string, repo identity.Repository) fiber.Handler {
 	tokenSecret := []byte(secret)
 
 	return func(c *fiber.Ctx) error {
@@ -26,6 +30,7 @@ func NewBearerAuthMiddleware(secret string) fiber.Handler {
 
 		tokenString := strings.TrimSpace(parts[1])
 
+		// JWT formatını ve imzasını doğrula
 		parsedToken, err := jwt.ParseWithClaims(tokenString, &jwtPkg.Claims{}, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
@@ -41,12 +46,38 @@ func NewBearerAuthMiddleware(secret string) fiber.Handler {
 			return unauthorized(c)
 		}
 
-		userCtx := c.UserContext()
-		if userCtx == nil {
-			userCtx = context.Background()
+		// Token'ı database'de doğrula
+		ctx := c.UserContext()
+		if ctx == nil {
+			ctx = context.Background()
 		}
 
-		userCtx = context.WithValue(userCtx, "UserID", claims.Subject)
+		accessToken, err := repo.ValidateAccessToken(ctx, tokenString)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				zap.L().Warn("Token not found in database or revoked/expired",
+					zap.String("userId", claims.Subject),
+					zap.Error(err))
+				return unauthorized(c)
+			}
+			zap.L().Error("Failed to validate access token",
+				zap.String("userId", claims.Subject),
+				zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"code":    "identity.auth.validation_error",
+				"message": "Failed to validate token",
+			})
+		}
+
+		// Token sahibinin JWT'deki user ID ile eşleşip eşleşmediğini kontrol et
+		if accessToken.UserID != claims.Subject {
+			zap.L().Warn("Token user ID mismatch",
+				zap.String("tokenUserId", accessToken.UserID),
+				zap.String("claimsUserId", claims.Subject))
+			return unauthorized(c)
+		}
+
+		userCtx := context.WithValue(ctx, "UserID", claims.Subject)
 		userCtx = context.WithValue(userCtx, "UserEmail", claims.Email)
 		userCtx = context.WithValue(userCtx, "Jwt", tokenString)
 

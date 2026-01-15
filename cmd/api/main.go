@@ -1,14 +1,15 @@
 package main
 
 import (
-	"auction/app/identity"
-	"auction/infra/postgres"
-	"auction/internal/middleware"
-	"auction/pkg/config"
-	"auction/pkg/httperror"
 	"context"
 	"errors"
 	"fmt"
+	identityApp "identity/app"
+	"identity/infra/postgres"
+	"identity/infra/rabbitmq"
+	"identity/internal/middleware"
+	"identity/pkg/config"
+	"identity/pkg/httperror"
 	"os"
 	"os/signal"
 	"syscall"
@@ -93,32 +94,48 @@ func main() {
 		appConfig.PostgresPort,
 	)
 
-	loginHandler := identity.NewLoginHandler(pgRepository)
-	registerHandler := identity.NewRegisterHandler(pgRepository)
-	twoFactorChallengeHandler := identity.NewTwoFactorChallengeHandler(pgRepository)
-	enableTwoFactorHandler := identity.NewEnableTwoFactorHandler(pgRepository)
-	disableTwoFactorHandler := identity.NewDisableTwoFactorHandler(pgRepository)
-	getUserHandler := identity.NewGetUserHandler(pgRepository)
-	verifyTwoFactorHandler := identity.NewVerifyTwoFactorHandler(pgRepository)
-	getRecoveryCodesHandler := identity.NewGetRecoveryCodesHandler(pgRepository)
-	validateHandler := identity.NewValidateHandler(pgRepository)
+	var eventPublisher *rabbitmq.RabbitMQPublisher
+	if appConfig.RabbitMQURL != "" {
+		var err error
+		eventPublisher, err = rabbitmq.NewRabbitMQPublisher(
+			appConfig.RabbitMQURL,
+			appConfig.ServiceName,
+		)
+		if err != nil {
+			zap.L().Error("Failed to initialize RabbitMQ publisher", zap.Error(err))
+		} else {
+			defer eventPublisher.Close()
+		}
+	}
 
-	bearerAuth := middleware.NewBearerAuthMiddleware(appConfig.JWTSecret)
+	loginHandler := identityApp.NewLoginHandler(pgRepository)
+	registerHandler := identityApp.NewRegisterHandler(pgRepository, eventPublisher)
+	twoFactorChallengeHandler := identityApp.NewTwoFactorChallengeHandler(pgRepository)
+	enableTwoFactorHandler := identityApp.NewEnableTwoFactorHandler(pgRepository)
+	disableTwoFactorHandler := identityApp.NewDisableTwoFactorHandler(pgRepository)
+	getUserHandler := identityApp.NewGetUserHandler(pgRepository)
+	verifyTwoFactorHandler := identityApp.NewVerifyTwoFactorHandler(pgRepository)
+	getRecoveryCodesHandler := identityApp.NewGetRecoveryCodesHandler(pgRepository)
+	validateHandler := identityApp.NewValidateHandler(pgRepository)
+	refreshTokenHandler := identityApp.NewRefreshTokenHandler(pgRepository)
+
+	bearerAuth := middleware.NewBearerAuthMiddleware(appConfig.JWTSecret, pgRepository)
 
 	publicRoutes := app.Group("/")
-	publicRoutes.Post("/login", handle[identity.LoginRequest, identity.LoginResponse](loginHandler))
-	publicRoutes.Post("/register", handle[identity.RegisterRequest, identity.RegisterResponse](registerHandler))
-	publicRoutes.Post("/2fa/challenge", handle[identity.TwoFactorChallengeRequest, identity.TwoFactorChallengeResponse](twoFactorChallengeHandler))
+	publicRoutes.Post("/login", handle[identityApp.LoginRequest, identityApp.LoginResponse](loginHandler))
+	publicRoutes.Post("/register", handle[identityApp.RegisterRequest, identityApp.RegisterResponse](registerHandler))
+	publicRoutes.Post("/2fa/challenge", handle[identityApp.TwoFactorChallengeRequest, identityApp.TwoFactorChallengeResponse](twoFactorChallengeHandler))
+	publicRoutes.Post("/refresh-token", handle[identityApp.RefreshTokenRequest, identityApp.RefreshTokenResponse](refreshTokenHandler))
 
 	privateRoutes := app.Group("/", bearerAuth)
-	privateRoutes.Get("/me", handle[identity.GetUserRequest, identity.GetUserResponse](getUserHandler))
-	privateRoutes.Get("/validate", middleware.SetResponseHeadersMiddleware(), handle[identity.ValidateHandlerRequest, identity.ValidateHandlerResponse](validateHandler))
+	privateRoutes.Get("/me", handle[identityApp.GetUserRequest, identityApp.GetUserResponse](getUserHandler))
+	privateRoutes.Get("/validate", middleware.SetResponseHeadersMiddleware(), handle[identityApp.ValidateHandlerRequest, identityApp.ValidateHandlerResponse](validateHandler))
 
 	tfaRoutes := privateRoutes.Group("/2fa")
-	tfaRoutes.Post("/enable", handle[identity.EnableTwoFactorRequest, identity.EnableTwoFactorResponse](enableTwoFactorHandler))
-	tfaRoutes.Post("/disable", handle[identity.DisableTwoFactorRequest, identity.DisableTwoFactorResponse](disableTwoFactorHandler))
-	tfaRoutes.Post("/verify", handle[identity.VerifyTwoFactorRequest, identity.VerifyTwoFactorResponse](verifyTwoFactorHandler))
-	tfaRoutes.Get("/recovery-codes", handle[identity.GetRecoveryCodesRequest, identity.GetRecoveryCodesResponse](getRecoveryCodesHandler))
+	tfaRoutes.Post("/enable", handle[identityApp.EnableTwoFactorRequest, identityApp.EnableTwoFactorResponse](enableTwoFactorHandler))
+	tfaRoutes.Post("/disable", handle[identityApp.DisableTwoFactorRequest, identityApp.DisableTwoFactorResponse](disableTwoFactorHandler))
+	tfaRoutes.Post("/verify", handle[identityApp.VerifyTwoFactorRequest, identityApp.VerifyTwoFactorResponse](verifyTwoFactorHandler))
+	tfaRoutes.Get("/recovery-codes", handle[identityApp.GetRecoveryCodesRequest, identityApp.GetRecoveryCodesResponse](getRecoveryCodesHandler))
 
 	// Start server in a goroutine
 	go func() {

@@ -1,8 +1,8 @@
-package identity
+package app
 
 import (
-	"auction/pkg/httperror"
 	"context"
+	"identity/pkg/httperror"
 )
 
 type DisableTwoFactorHandler struct {

@@ -1,9 +1,9 @@
-package identity
+package app
 
 import (
-	"auction/pkg/httperror"
-	"auction/pkg/jwt"
 	"context"
+	"identity/pkg/httperror"
+	"identity/pkg/jwt"
 )
 
 type ValidateHandler struct {

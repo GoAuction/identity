@@ -1,4 +1,4 @@
-package identity
+package app
 
 import (
 	"context"
@@ -7,18 +7,23 @@ import (
 	"errors"
 	"strings"
 
-	"auction/pkg/httperror"
+	"identity/domain"
+	"identity/pkg/events"
+	"identity/pkg/httperror"
 
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 type RegisterHandler struct {
 	repository Repository
+	publisher  events.Publisher
 }
 
-func NewRegisterHandler(repository Repository) *RegisterHandler {
+func NewRegisterHandler(repository Repository, publisher events.Publisher) *RegisterHandler {
 	return &RegisterHandler{
 		repository: repository,
+		publisher:  publisher,
 	}
 }
 
@@ -54,7 +59,7 @@ func (h *RegisterHandler) Handle(ctx context.Context, req *RegisterRequest) (*Re
 		return nil, httperror.BadRequest("identity.register.name_required", "Name field is required", nil)
 	}
 
-	id, err := h.repository.Create(ctx, req.Email, hashedPassword, req.Name)
+	id, err := h.repository.Create(ctx, req.Email, hashedPassword)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, httperror.Conflict(
@@ -70,6 +75,13 @@ func (h *RegisterHandler) Handle(ctx context.Context, req *RegisterRequest) (*Re
 			nil,
 		)
 	}
+
+	h.publishEvent(ctx, domain.User{
+		ID:    id,
+		Email: req.Email,
+		Name:  req.Name,
+	})
+
 	return &RegisterResponse{ID: id, Email: req.Email, Name: req.Name}, nil
 }
 
@@ -79,4 +91,34 @@ func isUniqueViolation(err error) bool {
 		return pqErr.Code == "23505"
 	}
 	return false
+}
+
+func (h RegisterHandler) publishEvent(ctx context.Context, user domain.User) {
+	eventPayload := events.UserRegisteredPayload{
+		Email:     user.Email,
+		Name:      user.Name,
+		UserID:    user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
+	headers := events.Headers{
+		TraceID:       events.GenerateTraceID(),
+		CorrelationID: events.GenerateCorrelationID(),
+		Service:       "identity",
+	}
+
+	event := events.NewEvent(
+		events.UserRegisteredEvent,
+		events.EventVersionV1,
+		eventPayload,
+		headers,
+	)
+
+	if err := h.publisher.Publish(ctx, events.IdentityExchange, event, headers); err != nil {
+		zap.L().Error("Failed to publish identity.registered event",
+			zap.String("userID", user.ID),
+			zap.Error(err),
+		)
+	}
 }

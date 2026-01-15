@@ -1,9 +1,9 @@
-package identity
+package app
 
 import (
-	"auction/pkg/httperror"
 	"context"
 	"encoding/json"
+	"identity/pkg/httperror"
 )
 
 type GetRecoveryCodesHandler struct {

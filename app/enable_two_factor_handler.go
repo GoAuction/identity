@@ -1,9 +1,9 @@
-package identity
+package app
 
 import (
-	"auction/pkg/httperror"
-	"auction/pkg/totp"
 	"context"
+	"identity/pkg/httperror"
+	"identity/pkg/totp"
 )
 
 type EnableTwoFactorHandler struct {
@@ -15,6 +15,7 @@ type EnableTwoFactorRequest struct {
 
 type EnableTwoFactorResponse struct {
 	TotpUrl string `json:"totp_url"`
+	Secret  string `json:"secret"`
 }
 
 func NewEnableTwoFactorHandler(repository Repository) *EnableTwoFactorHandler {
@@ -56,5 +57,6 @@ func (e EnableTwoFactorHandler) Handle(ctx context.Context, _ *EnableTwoFactorRe
 
 	return &EnableTwoFactorResponse{
 		TotpUrl: totpUrl,
+		Secret:  secret,
 	}, nil
 }

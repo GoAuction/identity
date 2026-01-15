@@ -1,10 +1,10 @@
-package identity
+package app
 
 import (
-	"auction/pkg/httperror"
-	"auction/pkg/totp"
 	"context"
 	"encoding/json"
+	"identity/pkg/httperror"
+	"identity/pkg/totp"
 	"strings"
 )
 

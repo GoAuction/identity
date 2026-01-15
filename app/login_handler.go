@@ -1,14 +1,14 @@
-package identity
+package app
 
 import (
-	"auction/pkg/jwt"
 	"context"
 	"database/sql"
 	"errors"
+	"identity/pkg/jwt"
 	"strings"
 	"time"
 
-	"auction/pkg/httperror"
+	"identity/pkg/httperror"
 )
 
 type LoginHandler struct {
@@ -21,7 +21,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func NewLoginHandler(repository Repository) *LoginHandler {
@@ -70,7 +71,7 @@ func (h *LoginHandler) Handle(ctx context.Context, req *LoginRequest) (*LoginRes
 	}
 
 	if user.TwoFactorEnabled && user.TwoFactorVerified {
-		tfaJwt, err := jwt.CreateToken(user)
+		tfaJwt, err := jwt.GenerateToken(user)
 
 		if err != nil {
 			return nil, httperror.InternalServerError(
@@ -84,16 +85,16 @@ func (h *LoginHandler) Handle(ctx context.Context, req *LoginRequest) (*LoginRes
 			"identity.login.accepted",
 			"Request accepted. Verify otp",
 			struct {
-				Jwt string `json:"jwt"`
-				ExpiresIn int64 `json:"expires_at"`
+				Jwt       string `json:"jwt"`
+				ExpiresIn int64  `json:"expires_at"`
 			}{
-				Jwt: tfaJwt,
+				Jwt:       tfaJwt,
 				ExpiresIn: time.Now().Add(time.Hour).Unix(),
 			},
 		)
 	}
 
-	token, err := jwt.CreateToken(user)
+	token, err := jwt.GenerateToken(user)
 	if err != nil {
 		return nil, httperror.InternalServerError(
 			"identity.login.token_generation_failed",
@@ -102,5 +103,35 @@ func (h *LoginHandler) Handle(ctx context.Context, req *LoginRequest) (*LoginRes
 		)
 	}
 
-	return &LoginResponse{Token: token}, nil
+	refreshToken, err := jwt.GenerateRefreshToken(user)
+	if err != nil {
+		return nil, httperror.InternalServerError(
+			"identity.login.token_generation_failed",
+			"Failed to generate token",
+			nil,
+		)
+	}
+
+	err = h.repository.CreateAccessToken(ctx, user, token, time.Now(), time.Now().Add(jwt.AccessTokenDuration))
+	if err != nil {
+		return nil, httperror.InternalServerError(
+			"identity.login.token_generation_failed",
+			"Failed to generate token",
+			[]string{err.Error()},
+		)
+	}
+
+	err = h.repository.CreateRefreshToken(ctx, user, refreshToken, time.Now(), time.Now().Add(jwt.RefreshTokenDuration))
+	if err != nil {
+		return nil, httperror.InternalServerError(
+			"identity.login.token_generation_failed",
+			"Failed to generate token",
+			[]string{err.Error()},
+		)
+	}
+
+	return &LoginResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
+	}, nil
 }
