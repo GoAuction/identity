@@ -10,7 +10,7 @@ const (
 )
 
 const (
-	UserRegisteredEvent = "user.registered"
+	UserRegisteredEvent = "identity.user.registered"
 )
 
 const (
