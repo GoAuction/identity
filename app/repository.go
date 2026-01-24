@@ -18,4 +18,5 @@ type Repository interface {
 	ValidateAccessToken(ctx context.Context, token string) (*domain.AccessToken, error)
 	CreateAccessToken(ctx context.Context, user *domain.User, token string, usedAt time.Time, expiresAt time.Time) error
 	CreateRefreshToken(ctx context.Context, user *domain.User, token string, usedAt time.Time, expiresAt time.Time) error
+	ChangePassword(ctx context.Context, id string, password string) error
 }

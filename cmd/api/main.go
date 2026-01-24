@@ -118,6 +118,7 @@ func main() {
 	getRecoveryCodesHandler := identityApp.NewGetRecoveryCodesHandler(pgRepository)
 	validateHandler := identityApp.NewValidateHandler(pgRepository)
 	refreshTokenHandler := identityApp.NewRefreshTokenHandler(pgRepository)
+	changePasswordHandler := identityApp.NewChangePasswordHandler(pgRepository)
 
 	bearerAuth := middleware.NewBearerAuthMiddleware(appConfig.JWTSecret, pgRepository)
 
@@ -130,6 +131,7 @@ func main() {
 	privateRoutes := app.Group("/", bearerAuth)
 	privateRoutes.Get("/me", handle[identityApp.GetUserRequest, identityApp.GetUserResponse](getUserHandler))
 	privateRoutes.Get("/validate", middleware.SetResponseHeadersMiddleware(), handle[identityApp.ValidateHandlerRequest, identityApp.ValidateHandlerResponse](validateHandler))
+	privateRoutes.Post("/change-password", handle[identityApp.ChangePasswordRequest, identityApp.ChangePasswordResponse](changePasswordHandler))
 
 	tfaRoutes := privateRoutes.Group("/2fa")
 	tfaRoutes.Post("/enable", handle[identityApp.EnableTwoFactorRequest, identityApp.EnableTwoFactorResponse](enableTwoFactorHandler))

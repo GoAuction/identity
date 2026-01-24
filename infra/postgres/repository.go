@@ -115,3 +115,13 @@ func (r *PgRepository) CreateRefreshToken(ctx context.Context, user *domain.User
 
 	return nil
 }
+
+func (r *PgRepository) ChangePassword(ctx context.Context, id string, password string) error {
+	query := `UPDATE users SET password = $1 WHERE id = $2`
+	_, err := r.db.ExecContext(ctx, query, password, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
